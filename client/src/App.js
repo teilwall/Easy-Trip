@@ -1,61 +1,50 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import MapComponent from './MapComponent';
+import MyForm from './Form';
 
 function App() {
-    const [city, setCity] = useState('');
-    const [category, setCategory] = useState('');
-    const [priority, setPriority] = useState('');
+    const [locations, setLocations] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    // const [formExecuted, setFormExecuted] = useState(false);
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
+    useEffect(() => {
+        // if (formExecuted) {
+            const fetchData = async () => {
+                try {
+                    console.log("inside useEffect");
+                    const response = await fetch('http://localhost:5000/api');
+                    if (!response.ok) {
+                        console.log("not working");
+                        throw new Error('Network response was not ok');
+                    }
+                    const jsonData = await response.json();
+                    // console.log(jsonData);
+                    setLocations(jsonData);
+                    setIsLoading(false); // Set loading state to false when data is fetched
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                }
+            };
+    
+            fetchData();
+        // }
+    }, []);
 
-        try {
-            // Send a POST request to the server
-            const response = await axios.post('/process-client-inputs', {
-                city,
-                category,
-                priority
-            });
-
-            // Handle the response from the server
-            console.log('Response from server:', response.data);
-        } catch (error) {
-            console.error('Error:', error);
-        }
-    };
+    // const handleFormSubmit = () => {
+    //     setFormExecuted(true);
+    //     console.log(formExecuted);
+    // };
 
     return (
         <div>
-            <form onSubmit={handleSubmit}>
-                <label>
-                    City:
-                    <input
-                        type="text"
-                        value={city}
-                        onChange={(event) => setCity(event.target.value)}
-                    />
-                </label>
-                <label>
-                    Category:
-                    <input
-                        type="text"
-                        value={category}
-                        onChange={(event) => setCategory(event.target.value)}
-                    />
-                </label>
-                <label>
-                    Priority:
-                    <input
-                        type="text"
-                        value={priority}
-                        onChange={(event) => setPriority(event.target.value)}
-                    />
-                </label>
-                <button type="submit">Submit</button>
-            </form>
+            {/* <MyForm onSubmit={handleFormSubmit} /> */}
+            <MyForm />
             <h1>Leaflet Map Example</h1>
-            <MapComponent />
+            {isLoading ? (
+                <p>Loading...</p>
+            ) : (
+                <MapComponent locations={locations} />
+            )}
         </div>
     );
 }

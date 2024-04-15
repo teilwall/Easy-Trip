@@ -9,6 +9,7 @@ const { kmeans } = require('ml-kmeans');
 
 // Initialize Express app
 const app = express();
+const PORT = 5000;
 
 // Configure middleware
 app.use(bodyParser.json());
@@ -17,29 +18,16 @@ app.use(cors());
 
 
 const apiKey = '5ae2e3f221c38a28845f05b64dd7ece8b4aea86eae0408d62e973b96';
-const city = 'Paris';
 const category = 'historic_object';
 const priority = 'tourist';
 const radius = 1000;
-const lon = 2.3522; // Longitude of Paris
-const lat = 48.8566; // Latitude of Paris
+// const lon = 2.3522; // Longitude of Paris
+// const lat = 48.8566; // Latitude of Paris
 
-// app.post('/process-client-inputs', (req, res) => {
-//   // Retrieve client inputs from the request body
-//   const city = req.body.city;
-//   const category = req.body.category;
-//   const priority = req.body.priority;
+app.post('/apiForm', (req, res) => {
+  const { cityName, lat, lon, fromDate, toDate, chosenKinds } = req.body;
 
-//   // Process the inputs as needed
-//   console.log('City:', city);
-//   console.log('Category:', category);
-//   console.log('Priority:', priority);
-
-//   // Send a response back to the client
-//   res.send('Inputs received and processed successfully!');
-// });
-
-axios.get(`https://api.opentripmap.com/0.1/en/places/radius?radius=${radius}&lon=${lon}&lat=${lat}&kinds=${category}&priority=${priority}&apikey=${apiKey}`)
+  axios.get(`https://api.opentripmap.com/0.1/en/places/radius?radius=${radius}&lon=${lon}&lat=${lat}&kinds=${category}&priority=${priority}&apikey=${apiKey}`)
   .then(response => {
     console.log(response.data);
     // Extracting names of architecture places
@@ -51,9 +39,6 @@ axios.get(`https://api.opentripmap.com/0.1/en/places/radius?radius=${radius}&lon
     // const geometry = response.data.features.map(place => place.geometry);
     console.log(architecturePlaces);
     console.log(geometry);
-    // console.log(properties);
-    // console.log(first30Places);
-    // console.log(geometry);
 
     // Example response.data.features
     const features = response.data.features;
@@ -62,9 +47,7 @@ axios.get(`https://api.opentripmap.com/0.1/en/places/radius?radius=${radius}&lon
     const places = features.map(place => [place.geometry.coordinates[1], place.geometry.coordinates[0]]);
 
     // Apply K-means clustering
-    const nClusters = 3;  // Number of clusters
-    // const kmeans = new KMeans({ nClusters });
-    // const { clusters, centroids } = kmeans(places, nClusters);
+    const nClusters = 3;  
     let { clusters, centroids } = kmeans(places, nClusters);
     console.log(clusters)
     console.log(centroids)
@@ -112,26 +95,25 @@ axios.get(`https://api.opentripmap.com/0.1/en/places/radius?radius=${radius}&lon
       }
     }
     console.log(clusters);
-    // for (let i=0; i<nClusters; i++) {
-    //   for (letj=0; j<clusters[i].length; j++){
-    //     console.log(clusters[i][j])
-    //   }
-    // }
+
+    // Define routes
+    app.get('/api', (req, res) => {
+      res.json(places);
+    });
+    // res.json(places)
+
   })
   .catch(error => {
     console.error('Error fetching data:', error);
   });
-
-// Define routes
-app.get('/', (req, res) => {
-  res.send('Hello World!');
 });
+
 
 // Start the server
 mongoose.connect('mongodb://localhost:27017/easy-trip', { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log('Connected to MongoDB');
-    app.listen(5000, () => {
+    app.listen(PORT, () => {
       console.log('Server started on port 5000');
     });
   })

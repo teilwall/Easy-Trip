@@ -4,7 +4,7 @@ import "./MapComponent.css"
 
 import React, { Component } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L, { Icon } from "leaflet";
+import { Icon } from "leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster"
 import 'leaflet-routing-machine'
 
@@ -14,35 +14,9 @@ const customIcon = new Icon({
 })
 
 class MapComponent extends Component {
-    componentDidMount() {
-        if (this.mapRef && this.mapRef.leafletElement) {
-            const map = this.mapRef.leafletElement;
-
-            const waypoints = [
-                L.latLng(51.5, -0.09),
-                L.latLng(51.51, -0.1),
-                L.latLng(51.52, -0.12)
-            ];
-
-            const routingControl = L.Routing.control({
-                waypoints,
-                routeWhileDragging: true,
-                createMarker: function (i, waypoint, n) {
-                    return L.marker(waypoint.latLng, {
-                        icon: customIcon // Use custom icon for each waypoint
-                    }).bindPopup("Waypoint " + i); // Customize popup content if needed
-                }
-            }).addTo(map);
-
-            // If you want to bind events to the routing control, you can do so like this:
-            routingControl.on('routeselected', function (e) {
-                var routes = e.routes;
-                // Do something with the routes
-            });
-        }
-    }
-
     render() {
+        const locations = this.props.locations;
+        // console.log(locations);
         return (
             <MapContainer
                 center={[51.505, -0.09]}
@@ -54,11 +28,13 @@ class MapComponent extends Component {
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
                 <MarkerClusterGroup>
-                    <Marker position={[51.505, -0.09]} icon={customIcon}>
-                        <Popup>
-                            A pretty CSS3 popup. <br /> Easily customizable.
-                        </Popup>
-                    </Marker>
+                    {locations.map((location, index) => (
+                        <Marker key={index} position={location} icon={customIcon}>
+                            <Popup>
+                                A pretty CSS3 popup. <br /> Easily customizable.
+                            </Popup>
+                        </Marker>
+                    ))}
                 </MarkerClusterGroup>
             </MapContainer>
         );
