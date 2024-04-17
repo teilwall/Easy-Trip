@@ -96,18 +96,21 @@ app.post('/apiForm', (req, res) => {
     }
     console.log(clusters);
 
+    // res.json(places)
     // Define routes
     app.get('/api', (req, res) => {
       res.json(places);
-    });
-    // res.json(places)
-
+    })
   })
   .catch(error => {
     console.error('Error fetching data:', error);
   });
 });
 
+// Define routes
+  // app.get('/api', (req, res) => {
+  //   res.json(places);
+  // });
 
 // Start the server
 mongoose.connect('mongodb://localhost:27017/easy-trip', { useNewUrlParser: true, useUnifiedTopology: true })
