@@ -46,13 +46,17 @@ function MyForm() {
         }}
         onSubmit={(values, { setSubmitting }) => {
           setTimeout(() => {
+            console.log(fromDate, toDate, choosenKinds);
             const data = {
                 cityName,
                 lat,
                 lon,
+                // fromDate,
+                // toDate,
                 fromDate: values.fromDate,
                 toDate: values.toDate,
-                choosenKinds: choosenKinds.map(kind => kind.label)
+                // choosenKinds: choosenKinds.map(kind => kind.label)
+                choosenKinds
             }
             axios.post('/apiForm', data)
               .then(response => {
@@ -109,6 +113,11 @@ function MyForm() {
               <DatePicker
                 selected={fromDate}
                 onChange={handleFromDateChange}
+                // onChange={(date) => {
+                //   // setFromDate(date);
+                //   console.log("from date");
+                //   console.log(date);
+                // }}
                 selectsStart
                 startDate={fromDate}
                 endDate={toDate}
@@ -139,8 +148,9 @@ function MyForm() {
                 options={kinds}
                 multi
                 onChange={(e)=>{
+                  // setChoosenKinds(e.label);
                   setChoosenKinds(e);
-                  // console.log(choosenKinds);
+                  console.log('inside onchange: ', choosenKinds);
                 } }
               >
               </Select>
