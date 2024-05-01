@@ -43,13 +43,13 @@ class TripOSM {
     }
 
     getDaysDifference(date1, date2) {
-        // Parse date strings to extract day, month, and year
-        var parts1 = date1.split("/");
-        var parts2 = date2.split("/");
+        // Extract date part from date strings
+        var parts1 = date1.split("T")[0].split("-");
+        var parts2 = date2.split("T")[0].split("-");
         
-        // Create Date objects with parsed components (months are zero-based)
-        var d1 = new Date(parts1[2], parts1[1] - 1, parts1[0]);
-        var d2 = new Date(parts2[2], parts2[1] - 1, parts2[0]);
+        // Create Date objects with parsed components
+        var d1 = new Date(parts1[0], parts1[1] - 1, parts1[2]);
+        var d2 = new Date(parts2[0], parts2[1] - 1, parts2[2]);
         
         // Calculate the difference in milliseconds
         var differenceInMilliseconds = d2 - d1;
@@ -58,13 +58,13 @@ class TripOSM {
         var differenceInDays = differenceInMilliseconds / (1000 * 60 * 60 * 24);
         
         // Return the number of days (rounded to the nearest whole number)
-        return Math.round(differenceInDays);
-    }
+        return Math.round(differenceInDays)+1;
+    }    
 
     combinePlaces(defaultPlaces, userPlaces, days) {
         // Filter userPlaces that are not in defaultPlaces
         const filteredUserPlaces = userPlaces.filter(userPlace => {
-            return defaultPlaces.some(defaultPlace => this.isEqual(defaultPlace, userPlace));
+            return !defaultPlaces.some(defaultPlace => this.isEqual(defaultPlace, userPlace));
         });
     
         const combinedPlaces = [];
@@ -138,6 +138,10 @@ class TripOSM {
 
     clusterPlaces(combined, days) {
         // Apply K-means clustering
+        if(combined.length == 0){
+            console.log("We are sorry but we do not support this city for now. Maybe another city?");
+            return {}
+        }
         const placesCoordinates = combined.map(place => [place.lon, place.lat]);
         let { clusters, centroids } = kmeans(placesCoordinates, days);
 

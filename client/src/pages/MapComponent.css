@@ -2,3 +2,23 @@
     height: 100vh;
     width: 100vh;
 }
+
+/* Adjust the map container */
+.map-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 50%; /* Adjust the width as needed */
+  }
+  
+  /* Style the container for the data on the right side */
+  .data-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40%; /* Adjust the width as needed */
+    padding: 20px; /* Add some padding for spacing */
+    overflow-y: auto; /* Enable vertical scrolling if content exceeds container height */
+  }
+  
