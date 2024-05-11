@@ -1,6 +1,6 @@
 .leaflet-container {
     height: 100vh;
-    width: 100vh;
+    width: 100%;
 }
 
 /* Adjust the map container */
@@ -17,8 +17,94 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 40%; /* Adjust the width as needed */
+    width: 45%; /* Adjust the width as needed */
     padding: 20px; /* Add some padding for spacing */
     overflow-y: auto; /* Enable vertical scrolling if content exceeds container height */
   }
   
+  .popup-content {
+    display: flex;
+}
+
+.popup-image {
+    width: 100px;
+    height: 100px;
+    background-size: cover;
+    background-position: center;
+    margin-right: 10px;
+}
+
+.popup-details {
+    flex: 1;
+}
+
+.data-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  border-radius: 20px;
+  background-color: #f7f7f7;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.data-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.data-header h1 {
+  font-size: 32px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.data-header p {
+  font-size: 18px;
+  margin: 0;
+  color: #666;
+}
+
+.data-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.data-body > div {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.data-body button {
+  background-color: #ff7f50;
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  padding: 15px 30px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.data-body button:hover {
+  background-color: #ff6347;
+}
+
+.data-body > div > div {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.data-body > div > div > div {
+  margin-top: 5px;
+  width: 100%;
+}
+
+.data-body strong {
+  color: #ff7f50;
+}
