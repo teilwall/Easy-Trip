@@ -22,7 +22,7 @@ function customEncoder(obj) {
       if (obj.hasOwnProperty(key)) {
           const value = obj[key];
           if (key === 'cityName') {
-            encodedString += obj[key] + '%';
+            encodedString += obj[key].replace(/\s/g, '%') + '%';
           } else {
             const stringValue = (typeof value === 'string') ? value : JSON.stringify(value);
             const encodedValue = stringValue.replace(/[^a-zA-Z0-9]/g, '%');
@@ -63,8 +63,8 @@ app.post('/apiForm', async (req, res) => {
     // console.log(places);
     // Define routes
     // app.get('/api', (req, res) => {
-    console.log(JSON.stringify(data));
-    console.log(`/api${customEncoder(data)}`);
+    // console.log(JSON.stringify(data));
+    // console.log(`/api${customEncoder(data)}`);
     app.get(`/api${customEncoder(data)}`, (req, res) => {
       res.json(placesMap);
     })

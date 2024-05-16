@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { Icon } from "leaflet";
 import { useLocation } from 'react-router-dom';
@@ -36,7 +36,7 @@ function customEncoder(obj) {
         if (obj.hasOwnProperty(key)) {
             const value = obj[key];
             if (key === 'cityName') {
-              encodedString += obj[key] + '%';
+                encodedString += obj[key].replace(/\s/g, '%') + '%';
             } else {
               const stringValue = (typeof value === 'string') ? value : JSON.stringify(value);
               const encodedValue = stringValue.replace(/[^a-zA-Z0-9]/g, '%');
@@ -59,9 +59,8 @@ function MapComponent() {
     const navigate = useNavigate();
     const { search } = useLocation();
     const queryParams = new URLSearchParams(search);
-    console.log(customEncoder(JSON.parse(queryParams.get('city'))));
     const city = customEncoder(JSON.parse(queryParams.get('city')));
-    console.log(city);
+    const mapRef = useRef(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -69,14 +68,13 @@ function MapComponent() {
                 // const response = await fetch('http://localhost:5000/api');
                 const response = await fetch(`http://localhost:5000/api${city}`);
                 if (!response.ok) {
-                    console.log("not working");
                     throw new Error('Network response was not ok');
                 }
                 const data = await response.json();
                 // console.log(data);
                 setMainInfo(data[-1]);
                 delete data[-1];
-                console.log(mainInfo);
+                // console.log(mainInfo);
                 setParsedData(data)
                 setIsLoading(false); 
             } catch (error) {
@@ -107,8 +105,36 @@ function MapComponent() {
         return <div>Loading...</div>;
     }
 
+    const calculateGroupCenter = (locations) => {
+        if (locations.length === 0) return [0, 0];
+    
+        // Calculate the average latitude and longitude of all locations in the group
+        const sumLat = locations.reduce((sum, location) => sum + location.lat, 0);
+        const sumLon = locations.reduce((sum, location) => sum + location.lon, 0);
+        const avgLat = sumLat / locations.length;
+        const avgLon = sumLon / locations.length;
+    
+        return [avgLat, avgLon];
+    };
+
+    const panToLocation = (lat, lon) => {
+        mapRef.current.panTo([lat, lon]);
+    };
+
+    const setViewLocation = (lat, lon, zoom) => {
+        if (mapRef.current) {
+            mapRef.current.setView([lat, lon], zoom);
+        }
+    };
+
     const handleButtonClick = (groupIndex) => {
         setSelectedGroup(groupIndex);
+        // Calculate the center of the group
+        const groupLocations = parsedData[groupIndex];
+        const groupCenter = calculateGroupCenter(groupLocations);
+        // Set the map center to the center of the group
+        // panToLocation(groupCenter[0], groupCenter[1]);
+        setViewLocation(groupCenter[0], groupCenter[1], 13);
     };
 
     const handleAddTripClick = () => {
@@ -119,7 +145,7 @@ function MapComponent() {
     const locations = Object.entries(parsedData).flatMap(([groupIndex, groupLocations]) => {
         const iconIndex = groupIndex % customIcons.length;
         return groupLocations.map(location => ({
-            ...location, // Since data is already parsed JSON, no need for JSON.parse
+            ...location,
             groupIndex: groupIndex,
             icon: customIcons[iconIndex]
         }));
@@ -162,12 +188,12 @@ function MapComponent() {
             </div>
 
             <div className='map-container'>
-                <MapContainer center={[mainInfo.lat, mainInfo.lon]} zoom={13}>
+                <MapContainer ref={mapRef} center={[mainInfo.lat, mainInfo.lon]} zoom={13}>
                     <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     />
-                    <MarkerClusterGroup>
+                    <MarkerClusterGroup disableClusteringAtZoom={12} animateAddingMarkers={true}>
                         {selectedGroupLocations.map((location, index) => (
                             <Marker key={index} position={[location.lat, location.lon]} icon={selectedGroup !== null ? customIconsNumerated[index % customIconsNumerated.length] : location.icon}>
                                 <Popup>

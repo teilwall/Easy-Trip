@@ -9,8 +9,13 @@ check edge cases
 
 
 
-salesman
-group center
-required
-map page renew
-query string
+salesman ✅
+group center ✅
+required ✅
+map page renew ✅
+query string ✅
+request for food places optimization
+smartphone design
+push to the server
+doc
+testing

@@ -166,34 +166,89 @@ class TripOSM {
     }
 
     // Function to rearrange places within each cluster
+    // rearrangePlacesWithinCluster(cluster) {
+    //     var rearrangedPlaces = [];
+    //     var remainingPlaces = cluster.slice(); // Create a copy of the places array
+
+    //     // Start with the first place
+    //     rearrangedPlaces.push(remainingPlaces.shift());
+
+    //     // Repeat until all places are arranged
+    //     while (remainingPlaces.length > 0) {
+    //         var lastPlace = rearrangedPlaces[rearrangedPlaces.length - 1];
+    //         var nearestPlaceIndex = null;
+    //         var nearestDistance = Infinity;
+
+    //         // Find the nearest remaining place
+    //         for (var i = 0; i < remainingPlaces.length; i++) {
+    //             var distance = this.calculateDistance(lastPlace, remainingPlaces[i]);
+    //             if (distance < nearestDistance) {
+    //                 nearestPlaceIndex = i;
+    //                 nearestDistance = distance;
+    //             }
+    //         }
+
+    //         // Add the nearest place to the rearranged list
+    //         rearrangedPlaces.push(remainingPlaces.splice(nearestPlaceIndex, 1)[0]);
+    //     }
+
+    //     return rearrangedPlaces;
+    // }
+
     rearrangePlacesWithinCluster(cluster) {
-        var rearrangedPlaces = [];
-        var remainingPlaces = cluster.slice(); // Create a copy of the places array
-
-        // Start with the first place
-        rearrangedPlaces.push(remainingPlaces.shift());
-
-        // Repeat until all places are arranged
-        while (remainingPlaces.length > 0) {
-            var lastPlace = rearrangedPlaces[rearrangedPlaces.length - 1];
-            var nearestPlaceIndex = null;
-            var nearestDistance = Infinity;
-
-            // Find the nearest remaining place
-            for (var i = 0; i < remainingPlaces.length; i++) {
-                var distance = this.calculateDistance(lastPlace, remainingPlaces[i]);
-                if (distance < nearestDistance) {
-                    nearestPlaceIndex = i;
-                    nearestDistance = distance;
+        var minTotalDistance = Infinity;
+        var optimalArrangement = [];
+    
+        // Iterate over each place as the starting point
+        for (var startIndex = 0; startIndex < cluster.length; startIndex++) {
+            var rearrangedPlaces = [];
+            var remainingPlaces = cluster.slice(); // Create a copy of the places array
+            var currentPlaceIndex = startIndex;
+    
+            // Start with the current place as the first place
+            rearrangedPlaces.push(remainingPlaces.splice(currentPlaceIndex, 1)[0]);
+    
+            // Repeat until all places are arranged
+            while (remainingPlaces.length > 0) {
+                var lastPlace = rearrangedPlaces[rearrangedPlaces.length - 1];
+                var nearestPlaceIndex = null;
+                var nearestDistance = Infinity;
+    
+                // Find the nearest remaining place
+                for (var i = 0; i < remainingPlaces.length; i++) {
+                    var distance = this.calculateDistance(lastPlace, remainingPlaces[i]);
+                    if (distance < nearestDistance) {
+                        nearestPlaceIndex = i;
+                        nearestDistance = distance;
+                    }
                 }
+    
+                // Add the nearest place to the rearranged list
+                rearrangedPlaces.push(remainingPlaces.splice(nearestPlaceIndex, 1)[0]);
             }
-
-            // Add the nearest place to the rearranged list
-            rearrangedPlaces.push(remainingPlaces.splice(nearestPlaceIndex, 1)[0]);
+    
+            // Calculate total distance for this arrangement
+            var totalDistance = this.calculateTotalDistance(rearrangedPlaces);
+    
+            // Update minimum total distance and optimal arrangement if necessary
+            if (totalDistance < minTotalDistance) {
+                minTotalDistance = totalDistance;
+                optimalArrangement = rearrangedPlaces;
+            }
         }
-
-        return rearrangedPlaces;
+    
+        return optimalArrangement;
     }
+    
+    // Function to calculate the total distance for a given arrangement of places
+    calculateTotalDistance(arrangement) {
+        var totalDistance = 0;
+        for (var i = 1; i < arrangement.length; i++) {
+            totalDistance += this.calculateDistance(arrangement[i - 1], arrangement[i]);
+        }
+        return totalDistance;
+    }
+    
 
     async clusterPlaces(combined, days) {
         // Apply K-means clustering
@@ -281,6 +336,7 @@ class TripOSM {
 
             placesMap[cluster].push(place);
         }
+        console.log(placesMap);
 
         for (var cluster in placesMap) {
             if (placesMap.hasOwnProperty(cluster)) {
