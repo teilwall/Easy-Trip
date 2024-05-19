@@ -117,10 +117,6 @@ function MapComponent() {
         return [avgLat, avgLon];
     };
 
-    const panToLocation = (lat, lon) => {
-        mapRef.current.panTo([lat, lon]);
-    };
-
     const setViewLocation = (lat, lon, zoom) => {
         if (mapRef.current) {
             mapRef.current.setView([lat, lon], zoom);

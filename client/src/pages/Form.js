@@ -224,7 +224,7 @@ function MyForm() {
         </div>
         <div className="form-section">
           <h6 style={{ color: formik.touched.placesPerDay && formik.errors.placesPerDay ? 'red' : 'inherit' }}>
-            {formik.touched.placesPerDay && formik.errors.placesPerDay ? formik.errors.placesPerDay : ""}
+            {formik.touched.placesPerDay && formik.errors.placesPerDay ? formik.errors.placesPerDay : "Number of places per day"}
           </h6>
           <div className="button-group">
             <button
@@ -296,4 +296,3 @@ function MyForm() {
 }
 
 export default MyForm;
-

@@ -576,7 +576,4 @@ class TripOSM {
     }
 }
 
-// var trip = new TripOSM( city='Paris', lat=48.864716, lon=2.349014, fromDate='25/04/2024', toDate='30/04/2024', choosenKinds=["Art&Cultural", "Historic"] );
-// const places = trip.createTrip
-// console.log([places]);
 module.exports = TripOSM;
