@@ -110,7 +110,6 @@ function MyForm() {
     onSubmit: (values, { resetForm }) => {
       // console.log(values);
       setTimeout(() => {
-        console.log(fromDate.toISOString());
         const fromDateStr = JSON.stringify(fromDate);
         const toDateStr = JSON.stringify(toDate);
         // console.log(fromDateStr, toDateStr, chosenKinds);
@@ -127,15 +126,11 @@ function MyForm() {
         };
         axios.post('/apiForm', data)
           .then(response => {
-            // Handle success response
-            // console.log(response.data);
+            console.log(response.data);
           })
           .catch(error => {
-            // Handle error
             console.error('Error:', error);
           });
-        // jump to next page
-        // navigate('/map', { replace: true });  
         navigate(`/map?city=${encodeURIComponent(JSON.stringify(data))}`);
         setSubmitting(false);
         resetForm();
@@ -146,6 +141,11 @@ function MyForm() {
 
   return (
     <div className="form-container">
+      <div>
+        <header>
+          <h1>Plan your next trip</h1>
+        </header>
+      </div>
       <form onSubmit={formik.handleSubmit}>
         <div className="form-section">
         <h6 style={{ color: formik.touched.country && formik.errors.country ? 'red' : 'inherit' }}>
@@ -192,7 +192,6 @@ function MyForm() {
               minDate={new Date()}
               placeholderText="Select From Date"
             />
-            {/* <Field type="hidden" name="fromDate" value={fromDate} /> */}
           </div>
           <div>
             <h6>To Date</h6>
@@ -206,8 +205,6 @@ function MyForm() {
               maxDate={new Date(fromDate.getTime() + 9 * 24 * 60 * 60 * 1000)}
               placeholderText="Select To Date"
             />
-            {/* <Field type="hidden" name="toDate" value={toDate} />
-            <ErrorMessage name="toDate" component="div" /> */}
           </div>
         </div>
         <div className="form-section">
@@ -288,7 +285,7 @@ function MyForm() {
           </div>
         </div>
         <button type="submit" disabled={isSubmitting}>
-          Submit
+          Create Trip
         </button>
       </form>
     </div>

@@ -1,5 +1,5 @@
-const axios = require('axios');
 const { kmeans } = require('ml-kmeans');
+const { performance } = require('perf_hooks');
 
 class TripOSM {
     RADIUS = 10000;
@@ -11,7 +11,11 @@ class TripOSM {
         'Amusement Parks': ['["leisure"="amusement_park"]'],
         'Museums': ['["tourism"="museum"]'],
         'Outdoor Adventures': ['["tourism"="viewpoint"]', '["natural"="cave_entrance"]', '["natural"="waterfall"]', '["natural"="peak"]']
-
+    }
+    FOOD_PLACE = {
+        'cheap': ['["amenity"="fast_food"]'],
+        "normal": ['["amenity"="cafe"]'],
+        "gold card": ['["amenity"="restaurant"]']
     }
 
     constructor( city, lat, lon, fromDate, toDate, choosenKinds, placesPerDay, numPeople, budget ) {
@@ -63,12 +67,7 @@ class TripOSM {
         return Math.round(differenceInDays)+1;
     }    
 
-    combinePlaces(defaultPlaces, userPlaces, days, placesPerDay) {
-        // Filter userPlaces that are in defaultPlaces
-        const filteredUserPlaces = userPlaces.filter(userPlace => {
-            return !defaultPlaces.some(defaultPlace => this.isEqual(defaultPlace, userPlace));
-        });
-    
+    combinePlaces(defaultPlaces, userPlaces, days) {
         const combinedPlaces = [];
         var minTotalRequiredSize;
         var totalRequiredSize;
@@ -77,35 +76,33 @@ class TripOSM {
             minTotalRequiredSize = days * 1;
             totalRequiredSize = days * 2;
             minRequiredSize = days;
-        } else if (this.placesPerDay === '3-4') {
+        } else {
             minTotalRequiredSize = days * 3;
             totalRequiredSize = days * 4;
             minRequiredSize = days*2;
-        } else {
-            console.log('placesPerDay is not recieved!');
         }
 
-        // If both defaultPlaces and filteredUserPlaces have at least minRequiredSize items
-        if (defaultPlaces.length >= minRequiredSize && filteredUserPlaces.length >= minRequiredSize) {
+        // If both defaultPlaces and userPlaces have at least minRequiredSize items
+        if (defaultPlaces.length >= minRequiredSize && userPlaces.length >= minRequiredSize) {
             // Take the first minRequiredSize items from both arrays
             combinedPlaces.push(...defaultPlaces.slice(0, minRequiredSize));
-            combinedPlaces.push(...filteredUserPlaces.slice(0, minRequiredSize));
-        } else if (defaultPlaces.length + filteredUserPlaces.length >= totalRequiredSize) {
+            combinedPlaces.push(...userPlaces.slice(0, minRequiredSize));
+        } else if (defaultPlaces.length + userPlaces.length >= totalRequiredSize) {
             // If one of the arrays has less than minRequiredSize items
-            if (defaultPlaces.length < minRequiredSize && filteredUserPlaces.length >= minRequiredSize) {
-                // Take all items from filteredUserPlaces and complete the rest from defaultPlaces
+            if (defaultPlaces.length < minRequiredSize && userPlaces.length >= minRequiredSize) {
+                // Take all items from userPlaces and complete the rest from defaultPlaces
                 combinedPlaces.push(...defaultPlaces);
                 const remainingPlaces = totalRequiredSize - combinedPlaces.length;
-                combinedPlaces.push(...filteredUserPlaces.slice(0, remainingPlaces));
-            } else if (defaultPlaces.length >= minRequiredSize && filteredUserPlaces.length < minRequiredSize) {
-                // Take all items from defaultPlaces and complete the rest from filteredUserPlaces
-                combinedPlaces.push(...filteredUserPlaces);
+                combinedPlaces.push(...userPlaces.slice(0, remainingPlaces));
+            } else if (defaultPlaces.length >= minRequiredSize && userPlaces.length < minRequiredSize) {
+                // Take all items from defaultPlaces and complete the rest from userPlaces
+                combinedPlaces.push(...userPlaces);
                 const remainingPlaces = totalRequiredSize - combinedPlaces.length;
                 combinedPlaces.push(...defaultPlaces.slice(0, remainingPlaces));
-            } else if(defaultPlaces.length + filteredUserPlaces.length >= minTotalRequiredSize){
+            } else if(defaultPlaces.length + userPlaces.length >= minTotalRequiredSize){
                 // Combine both arrays until the total size reaches the required size
                 combinedPlaces.push(...defaultPlaces);
-                combinedPlaces.push(...filteredUserPlaces);
+                combinedPlaces.push(...userPlaces);
             } else {
                 // If neither of the arrays individually meets the requirement, and their total size is not enough
                 console.log("Not enough places.");
@@ -113,39 +110,7 @@ class TripOSM {
             }
         } 
 
-        // Define a function to extract information about each element
-        const extractInfo = (element) => {
-            const info = {
-                english_name: "",
-                original_name: element.tags && element.tags.name ? element.tags.name : "",
-                lat: undefined,
-                lon: undefined,
-                image: "",
-                wikidata: "",
-                food: "no"
-            };
-            if (element.tags && element.tags['name:en']) {
-                info.english_name = element.tags['name:en'];
-            }
-            if (element.tags && element.tags.image) {
-                info.image = element.tags.image;
-            }
-            if (element.tags && element.tags.wikidata) {
-                info.wikidata = element.tags.wikidata;
-            }
-            if (element.type === "node") {
-                info.lat = element.lat;
-                info.lon = element.lon;
-            } else if (element.type === "way" || element.type === "relation") {
-                // Fetch ways contained in the relation
-                info.lat = element.center.lat;
-                info.lon = element.center.lon;
-            }
-            return info; 
-        };
-
-        const finalPlaces = combinedPlaces.map(extractInfo);
-        return finalPlaces;
+        return combinedPlaces;
     }
     
     // Function to check if two objects are equal
@@ -164,36 +129,6 @@ class TripOSM {
         // For simplicity, let's assume the distance is just the absolute difference
         return Math.abs(lat2 - lat1) + Math.abs(lon2 - lon1);
     }
-
-    // Function to rearrange places within each cluster
-    // rearrangePlacesWithinCluster(cluster) {
-    //     var rearrangedPlaces = [];
-    //     var remainingPlaces = cluster.slice(); // Create a copy of the places array
-
-    //     // Start with the first place
-    //     rearrangedPlaces.push(remainingPlaces.shift());
-
-    //     // Repeat until all places are arranged
-    //     while (remainingPlaces.length > 0) {
-    //         var lastPlace = rearrangedPlaces[rearrangedPlaces.length - 1];
-    //         var nearestPlaceIndex = null;
-    //         var nearestDistance = Infinity;
-
-    //         // Find the nearest remaining place
-    //         for (var i = 0; i < remainingPlaces.length; i++) {
-    //             var distance = this.calculateDistance(lastPlace, remainingPlaces[i]);
-    //             if (distance < nearestDistance) {
-    //                 nearestPlaceIndex = i;
-    //                 nearestDistance = distance;
-    //             }
-    //         }
-
-    //         // Add the nearest place to the rearranged list
-    //         rearrangedPlaces.push(remainingPlaces.splice(nearestPlaceIndex, 1)[0]);
-    //     }
-
-    //     return rearrangedPlaces;
-    // }
 
     rearrangePlacesWithinCluster(cluster) {
         var minTotalDistance = Infinity;
@@ -240,6 +175,15 @@ class TripOSM {
         return optimalArrangement;
     }
     
+    rearrangePlacesWithinMap(placesMap) {
+        for (const cluster in placesMap) {
+            if (placesMap.hasOwnProperty(cluster)) {
+                placesMap[cluster] = this.rearrangePlacesWithinCluster(placesMap[cluster]);
+            }
+        }
+        return placesMap;
+    }
+
     // Function to calculate the total distance for a given arrangement of places
     calculateTotalDistance(arrangement) {
         var totalDistance = 0;
@@ -250,7 +194,7 @@ class TripOSM {
     }
     
 
-    async clusterPlaces(combined, days) {
+    clusterPlaces(combined, days) {
         // Apply K-means clustering
         if(combined.length == 0){
             console.log("We are sorry but we do not support this city for now. Maybe another city?");
@@ -258,8 +202,7 @@ class TripOSM {
         }
         const placesCoordinates = combined.map(place => [place.lon, place.lat]);
         let { clusters, centroids } = kmeans(placesCoordinates, days);
-        console.log(combined);
-        console.log(clusters);
+
         // Balance the clusters
         const desiredGroupSize = Math.ceil(placesCoordinates.length / days);
         const groupSizes = new Array(days).fill(0);
@@ -280,8 +223,6 @@ class TripOSM {
                     excessClusters.push(index);
                 }
             });
-            // console.log("excess: ", excessClusters);
-            // console.log("deficit: ", deficitClusters);
         
             // Balance deficit clusters with excess clusters
             deficitClusters.forEach(minClusterIndex => {
@@ -311,7 +252,6 @@ class TripOSM {
                 });
         
                 // Move the closest place to the deficit cluster only if group sizes allow
-                // console.log("groupSize: ", groupSizes, "minClusterIndex: ", minClusterIndex, "clPLin: ", closestPlaceIndex, clusters[closestPlaceIndex], "desired: ", desiredGroupSize);
                 if (groupSizes[minClusterIndex] < desiredGroupSize && groupSizes[clusters[closestPlaceIndex]] > desiredGroupSize) {
                     clusters[closestPlaceIndex] = minClusterIndex;
                 
@@ -336,243 +276,300 @@ class TripOSM {
 
             placesMap[cluster].push(place);
         }
-        console.log(placesMap);
 
-        for (var cluster in placesMap) {
-            if (placesMap.hasOwnProperty(cluster)) {
-                placesMap[cluster] = this.rearrangePlacesWithinCluster(placesMap[cluster]);
-            }
-        }
-
-        // add foodPlaces
-        for (var cluster in placesMap) {
-            if (placesMap.hasOwnProperty(cluster)) {
-                if (placesMap[cluster].length <= 2) {
-                    const lat = placesMap[cluster][placesMap[cluster].length-1].lat;
-                    const lon = placesMap[cluster][placesMap[cluster].length-1].lon;
-                    const foodPlaces = await this.addFoodPlaces(lat, lon, 1000, this.budget, 2);
-                    // console.log("before len", foodPlaces);
-                    if (foodPlaces.length != 0) {
-                        // console.log("len: ", foodPlaces.length);
-                        placesMap[cluster].push(...foodPlaces);
-                    }
-                } else {
-                    const lat1 = placesMap[cluster][1].lat;
-                    const lon1 = placesMap[cluster][1].lon;
-                    let firstFoodPlace = await this.addFoodPlaces(lat1, lon1, 1000, this.budget, 1);
-                    const lat2 = placesMap[cluster][placesMap[cluster].length-1].lat;
-                    const lon2 = placesMap[cluster][placesMap[cluster].length-1].lon;
-                    let secondFoodPlace = await this.addFoodPlaces(lat2, lon2, 1000, this.budget, 1);
-                    placesMap[cluster].splice(2, 0, firstFoodPlace);
-                    placesMap[cluster].push(secondFoodPlace);
-
-                }
-            }
-        }
-
-        // add description and image
-        for (const placeId in placesMap) {
-            const placeObjects = placesMap[placeId];
-            // Iterate over the objects in the value list
-            for (const placeObject of placeObjects) {
-                const wikidataId = placeObject.wikidata;
-                // Fetch description and image for the Wikidata ID
-                
-                if (wikidataId === ""){
-                    continue;
-                }
-                const { description, imageUrl } = await this.fetchDescriptionAndImage(wikidataId);
-                // Update the object with the fetched data
-                placeObject.description = description;
-                if (imageUrl) placeObject.image = imageUrl;
-            }
-        }
-
-        // console.log(placesMap);
-        placesMap[-1] = {
-            city: this.city,
-            lat: this.lat,
-            lon: this.lon,
-            fromDate: this.fromDate,
-            toDate: this.toDate,
-            numPeople: this.numPeople
-        }
-        return JSON.stringify(placesMap);
+        return placesMap;
     }
 
     // Function to fetch English description and image URL from Wikidata API based on Wikidata ID
-    async fetchDescriptionAndImage(wikidataId) {
+    async fetchDescriptionsAndImages(placesMap) {
         try {
-            // Construct the URL for the Wikidata API
-            const apiUrl = `https://www.wikidata.org/wiki/Special:EntityData/${wikidataId}.json`;
-            // Fetch data from Wikidata API
-            const response = await fetch(apiUrl);
-            // Check if the request was successful
-            if (!response.ok) {
-                throw new Error('Failed to fetch data from Wikidata.');
+            // Collect all unique Wikidata IDs from placesMap
+            const wikidataIds = new Set();
+            for (const cluster in placesMap) {
+                if (placesMap.hasOwnProperty(cluster)) {
+                    for (const place of placesMap[cluster]) {
+                        if (place.wikidata) {
+                            wikidataIds.add(place.wikidata);
+                        }
+                    }
+                }
             }
-            // Parse the response as JSON
+    
+            if (wikidataIds.size === 0) {
+                console.log("No Wikidata IDs found.");
+                return placesMap;
+            }
+    
+            // Build the API request URL for all Wikidata IDs
+            const idsString = Array.from(wikidataIds).join('|');
+            const url = "https://www.wikidata.org/w/api.php";
+            const params = new URLSearchParams({
+                action: "wbgetentities",
+                ids: idsString,
+                format: "json",
+                origin: "*"
+            });
+    
+            // Fetch data from Wikidata
+            const response = await fetch(`${url}?${params.toString()}`);
+            if (!response.ok) {
+                console.error(`Failed to fetch data from: ${url}`);
+                throw new Error(`Failed to fetch data from Wikidata: ${response.statusText}`);
+            }
             const data = await response.json();
-
-            // Extract English description and image URL from the JSON data
-            const entity = data.entities[wikidataId];
-            const description = entity.descriptions?.en?.value || 'No description available';
-            const imageClaims = entity.claims?.P18 || [];
-            const imageUrl = imageClaims.length > 0 ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imageClaims[0].mainsnak.datavalue.value)}` : null;
-
-            // Return the extracted data
-            return { description, imageUrl };
+    
+            // Update placesMap with descriptions and images
+            for (const cluster in placesMap) {
+                if (placesMap.hasOwnProperty(cluster)) {
+                    for (const place of placesMap[cluster]) {
+                        if (place.wikidata && data.entities[place.wikidata]) {
+                            const entity = data.entities[place.wikidata];
+                            place.description = entity.descriptions?.en?.value || 'No description available';
+                            const imageClaims = entity.claims?.P18 || [];
+                            place.image = imageClaims.length > 0 ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imageClaims[0].mainsnak.datavalue.value)}` : place.image;
+                        }
+                    }
+                }
+            }
+    
+            return placesMap;
         } catch (error) {
-            // Handle any errors that occur during the process
             console.error('Error fetching data from Wikidata:', error);
-            return null;
+            return placesMap;
         }
     }
+    
+    
 
-    addFoodPlaces(lat, lon, radius, budget, num) {
-        return new Promise((resolve, reject) => {
-            let kind = "";
-            if (budget === 'cheap') {
-                kind = '["amenity"="fast_food"]';
-            } else if ( budget === "normal" ) {
-                kind = '["amenity"="cafe"]';
-            } else if ( budget === "gold card") {
-                kind = '["amenity"="restaurant"]';
-            } else {
-                console.log("Budget not setted!");
-                return;
+    // addFoodPlaces(lat, lon, radius, budget, num) {
+    //     return new Promise((resolve, reject) => {
+    //         let kind = "";
+    //         if (budget === 'cheap') {
+    //             kind = '["amenity"="fast_food"]';
+    //         } else if ( budget === "normal" ) {
+    //             kind = '["amenity"="cafe"]';
+    //         } else if ( budget === "gold card") {
+    //             kind = '["amenity"="restaurant"]';
+    //         } else {
+    //             console.log("Budget not setted!");
+    //             return;
+    //         }
+    //         const query = this.setQuery(lat, lon, [kind], radius);
+    //         fetch("https://overpass-api.de/api/interpreter", {
+    //             method: "POST",
+    //             body: query,
+    //         })
+    //         .then((response) => response.json())
+    //         .then((data) => {
+    //             const countTags = (element) => Object.keys(element.tags || {}).length;
+
+    //             // Extract information about each element
+    //             const elements = data.elements || [];
+    //             const sortedElements = elements.sort((a,b) => countTags(b)-countTags(a));
+
+    //             const extractInfo = (element) => {
+    //                 const info = {
+    //                     english_name: "",
+    //                     original_name: element.tags && element.tags.name ? element.tags.name : "",
+    //                     lat: undefined,
+    //                     lon: undefined,
+    //                     image: "",
+    //                     wikidata: "",
+    //                     food: "yes"
+    //                 };
+    //                 if (element.tags && element.tags['name:en']) {
+    //                     info.english_name = element.tags['name:en'];
+    //                 }
+    //                 if (element.tags && element.tags.image) {
+    //                     info.image = element.tags.image;
+    //                 }
+    //                 if (element.tags && element.tags.wikidata) {
+    //                     info.wikidata = element.tags.wikidata;
+    //                 }
+    //                 if (element.type === "node") {
+    //                     info.lat = element.lat;
+    //                     info.lon = element.lon;
+    //                 } else if (element.type === "way" || element.type === "relation") {
+    //                     // Fetch ways contained in the relation
+    //                     info.lat = element.center.lat;
+    //                     info.lon = element.center.lon;
+    //                 }
+    //                 return info; 
+    //             };
+    //             // console.log("num", num, sortedElements);
+    //             if (num == 2 && sortedElements.length >= 2) {
+    //                 const foodPlace = extractInfo(sortedElements[0]);
+    //                 const foodPlace2 = extractInfo(sortedElements[1]);
+    //                 // console.log("double", foodPlace, foodPlace2);
+    //                 resolve([foodPlace, foodPlace2]);
+    //             } else if (num == 2 && sortedElements.length < 2) {
+    //                 console.log("NOT FOUND");
+    //                 return [];
+    //             }
+    //             if (sortedElements.length > 0) {
+    //                 const foodPlace = extractInfo(sortedElements[0]);
+    //                 // console.log("single", foodPlace);
+    //                 resolve(foodPlace);
+    //             } else {
+    //                 console.log("NO FOOD PLACE");
+    //                 return [];
+    //             }
+    //         })
+    //         .catch((error) => {
+    //             console.error("Error fetching default data:", error);
+    //             reject(error);
+    //         });
+
+    //     });
+    // }
+
+    addFoodPlaces(placesMap, foodPlaces) {
+        for (const cluster in placesMap) {
+            if (placesMap.hasOwnProperty(cluster)) {
+                const clusterPlaces = placesMap[cluster];
+                if (clusterPlaces.length > 2) {
+                    // Add one food place closest to the 2nd place
+                    const secondPlace = clusterPlaces[1];
+                    const closestFoodPlaceToSecond = this.findClosestFoodPlace(secondPlace.lat, secondPlace.lon, foodPlaces);
+                    if (closestFoodPlaceToSecond) {
+                        placesMap[cluster].splice(2, 0, closestFoodPlaceToSecond);
+                    }
+    
+                    // Add one more food place closest to the last place
+                    const lastPlace = clusterPlaces[clusterPlaces.length - 1];
+                    const closestFoodPlaceToLast = this.findClosestFoodPlace(lastPlace.lat, lastPlace.lon, foodPlaces);
+                    if (closestFoodPlaceToLast) {
+                        placesMap[cluster].push(closestFoodPlaceToLast);
+                    }
+                } else if (clusterPlaces.length <= 2 && clusterPlaces.length > 0) {
+                    // Add one food place closest to the last place
+                    const lastPlace = clusterPlaces[clusterPlaces.length - 1];
+                    const closestFoodPlaceToLast = this.findClosestFoodPlace(lastPlace.lat, lastPlace.lon, foodPlaces);
+                    if (closestFoodPlaceToLast) {
+                        placesMap[cluster].push(closestFoodPlaceToLast);
+                    }
+                    const newLastPlace = clusterPlaces[clusterPlaces.length - 1];
+                    const closestFoodPlaceToNewLast = this.findClosestFoodPlace(newLastPlace.lat, newLastPlace.lon, foodPlaces);
+                    if (closestFoodPlaceToNewLast) {
+                        placesMap[cluster].push(closestFoodPlaceToLast);
+                    }
+                }
             }
-            const query = this.setQuery(lat, lon, [kind], radius);
-            fetch("https://overpass-api.de/api/interpreter", {
-                method: "POST",
-                body: query,
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                const countTags = (element) => Object.keys(element.tags || {}).length;
-
-                // Extract information about each element
-                const elements = data.elements || [];
-                const sortedElements = elements.sort((a,b) => countTags(b)-countTags(a));
-
-                const extractInfo = (element) => {
-                    const info = {
-                        english_name: "",
-                        original_name: element.tags && element.tags.name ? element.tags.name : "",
-                        lat: undefined,
-                        lon: undefined,
-                        image: "",
-                        wikidata: "",
-                        food: "yes"
-                    };
-                    if (element.tags && element.tags['name:en']) {
-                        info.english_name = element.tags['name:en'];
-                    }
-                    if (element.tags && element.tags.image) {
-                        info.image = element.tags.image;
-                    }
-                    if (element.tags && element.tags.wikidata) {
-                        info.wikidata = element.tags.wikidata;
-                    }
-                    if (element.type === "node") {
-                        info.lat = element.lat;
-                        info.lon = element.lon;
-                    } else if (element.type === "way" || element.type === "relation") {
-                        // Fetch ways contained in the relation
-                        info.lat = element.center.lat;
-                        info.lon = element.center.lon;
-                    }
-                    return info; 
-                };
-                // console.log("num", num, sortedElements);
-                if (num == 2 && sortedElements.length >= 2) {
-                    const foodPlace = extractInfo(sortedElements[0]);
-                    const foodPlace2 = extractInfo(sortedElements[1]);
-                    console.log("double", foodPlace, foodPlace2);
-                    resolve([foodPlace, foodPlace2]);
-                } else if (num == 2 && sortedElements.length < 2) {
-                    console.log("NOT FOUND");
-                    return [];
-                }
-                if (sortedElements.length > 0) {
-                    const foodPlace = extractInfo(sortedElements[0]);
-                    console.log("single", foodPlace);
-                    resolve(foodPlace);
-                } else {
-                    console.log("NO FOOD PLACE");
-                    return [];
-                }
-                
-            })
-            .catch((error) => {
-                console.error("Error fetching default data:", error);
-                reject(error);
-            });
-
-        });
+        }
+        // console.log(placesMap);
+        return placesMap;
     }
 
-    createTrip() {
-        return new Promise((resolve, reject) => {
-            // Get common tourist attractions
-            var defaultPlaces = [];
-            const defaultQuery = this.setQuery(this.lat, this.lon ,this.KINDS);
-            fetch("https://overpass-api.de/api/interpreter", {
+    findClosestFoodPlace(lat, lon, foodPlaces) {
+        let closestDistance = Infinity;
+        let closestPlace = null;
+    
+        for (const place of foodPlaces) {
+            const distance = this.calculateDistance({ lat, lon }, { lat: place.lat, lon: place.lon });
+            if (distance > 0 && distance < closestDistance) {
+                closestDistance = distance;
+                closestPlace = place;
+            }
+        }
+    
+        return closestPlace;
+    }
+
+    
+    async osmRequest() {
+        const kinds = this.KINDS.concat(this.choosenKinds, this.FOOD_PLACE[this.budget]);
+        const query = this.setQuery(this.lat, this.lon, kinds);
+        try {
+            const response = await fetch("https://overpass-api.de/api/interpreter", {
                 method: "POST",
-                body: defaultQuery,
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                const countTags = (element) => Object.keys(element.tags || {}).length;
-
-                // Extract information about each element
-                const elements = data.elements || [];
-                const sortedElements = elements.sort((a,b) => countTags(b)-countTags(a));
-
-                // Push the top 30 places with the most tags to the defaultPlaces array
-                for (let i = 0; i < Math.min(40, sortedElements.length); i++) {
-                    defaultPlaces.push(sortedElements[i]);
-                }
-
-                // console.log(defaultPlaces);
-            })
-            .catch((error) => {
-                console.error("Error fetching default data:", error);
+                body: query,
             });
+            if (!response.ok) {
+                throw new Error('Failed to fetch OSM data');
+            }
+            const data = await response.json();
+            return this.filterPlaces(data);
+        } catch (error) {
+            console.error("Error fetching OSM data:", error);
+            return {};
+        }
+    }
+    
+    filterPlaces(data) {
+        let defaultPlaces = [];
+        let userPlaces = [];
+        let foodPlaces = [];
+    
+        const countTags = (element) => Object.keys(element.tags || {}).length;
+        const elements = data.elements || [];
+        const sortedElements = elements.sort((a, b) => countTags(b) - countTags(a));
+    
+        const amenities = ["cafe", "fast_food", "restaurant"];
+        for (const element of sortedElements) {
+            if (element.tags && element.tags.tourism === "attraction") {
+                defaultPlaces.push(element);
+            } else if (element.tags && element.tags.amenity && amenities.includes(element.tags.amenity)) {
+                foodPlaces.push(element);
+            }  else {
+                userPlaces.push(element);
+            }
+        }
 
-            // Get user specific destinations
-            var userPlaces = [];
-            const userQuery = this.setQuery(this.lat, this.lon, this.choosenKinds);
-            fetch("https://overpass-api.de/api/interpreter", {
-                method: "POST",
-                body: userQuery,
-            })
-            .then((response) => response.json())
-            .then((data) => {
-                const countTags = (element) => Object.keys(element.tags || {}).length;
+        // Limit the arrays to the specified lengths
+        defaultPlaces = defaultPlaces.slice(0, 40).map(this.extractInfo);
+        userPlaces = userPlaces.slice(0, 40).map(this.extractInfo);
+        foodPlaces = foodPlaces.slice(0, 1000).map(this.extractInfo);
 
-                // Extract information about each element
-                const elements = data.elements || [];
-                const sortedElements = elements.sort((a,b) => countTags(b)-countTags(a));
+        return { defaultPlaces, userPlaces, foodPlaces };
+    }
 
-                // Push the top 30 places with the most tags to the defaultPlaces array
-                for (let i = 0; i < Math.min(40, sortedElements.length); i++) {
-                    userPlaces.push(sortedElements[i]);
-                }
+    extractInfo(element) {
+        const amenities = ["cafe", "fast_food", "restaurant"];
+        const info = {
+            english_name: "",
+            original_name: element.tags && element.tags.name ? element.tags.name : "",
+            lat: undefined,
+            lon: undefined,
+            image: "",
+            wikidata: "",
+            food: element.tags && element.tags.amenity && amenities.includes(element.tags.amenity) ? "yes" : "no"
+        };
+        if (element.tags && element.tags['name:en']) {
+            info.english_name = element.tags['name:en'];
+        }
+        if (element.tags && element.tags.image) {
+            info.image = element.tags.image;
+        }
+        if (element.tags && element.tags.wikidata) {
+            info.wikidata = element.tags.wikidata;
+        }
+        if (element.type === "node") {
+            info.lat = element.lat;
+            info.lon = element.lon;
+        } else if (element.type === "way" || element.type === "relation") {
+            // Fetch ways contained in the relation
+            info.lat = element.center.lat;
+            info.lon = element.center.lon;
+        }
+        return info; 
+    };
+    
+    async createTrip() {
+        try {
+            const { defaultPlaces, userPlaces, foodPlaces } = await this.osmRequest();
+            const days = this.getDaysDifference(this.fromDate, this.toDate);
+            const places = this.combinePlaces(defaultPlaces, userPlaces, days);
+            // console.log(places);
+            let placesMap = this.clusterPlaces(places, days);
+            placesMap = this.rearrangePlacesWithinMap(placesMap);
+            placesMap = this.addFoodPlaces(placesMap, foodPlaces);
+            placesMap = await this.fetchDescriptionsAndImages(placesMap);
 
-                // Log the usertPlaces array
-                // console.log(userPlaces);
-
-                const days = this.getDaysDifference(this.fromDate, this.toDate);
-                const places = this.combinePlaces(defaultPlaces, userPlaces, days);
-                const placesMap = this.clusterPlaces(places, days);
-
-                resolve(placesMap);
-            }).catch(error => {
-                console.log("Error fetching data in Trip:, ", error);
-                reject(error)
-            })
-        })
+            return JSON.stringify(placesMap);
+        } catch (error) {
+            console.error("Error creating trip:", error);
+            return {};
+        }
     }
 }
 

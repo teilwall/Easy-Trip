@@ -1,8 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const axios = require('axios');
-// const Trip = require('./trip.js')
 const TripOSM = require('./triposm.js')
 
 
@@ -36,20 +34,17 @@ function customEncoder(obj) {
 
   return encodedString;
 }
-
+// average time so far 27 sec
 app.post('/apiForm', async (req, res) => {
   try {
+    var startTime = performance.now()
     const data = req.body;
-    // console.log(data);
-    // const { cityName, lat, lon, fromDate, toDate, chosenKinds } = data;
     const cityName = data['cityName'];
     const lat = data['lat'];
     const lon = data['lon'];
     const fromDate = JSON.parse(data['fromDateStr']);
     const toDate = JSON.parse(data['toDateStr']);
-    // console.log('date range: ', toDate, fromDate);
     const chosenKinds = JSON.parse(data['chosenKinds']);
-    // console.log(cityName, chosenKinds, lat, lon)
     const placesPerDay = data['placesPerDay'];
     const numPeople = data['numPeople'];
     const budget = data['budget'];
@@ -58,29 +53,19 @@ app.post('/apiForm', async (req, res) => {
     var placesMap = await trip.createTrip();
     var placesMap = JSON.parse(placesMap);
     // console.log(placesMap);
-    // res.json(placesMap)
-    // places = placesMap.map(place => place[2])
-    // console.log(places);
-    // Define routes
-    // app.get('/api', (req, res) => {
-    // console.log(JSON.stringify(data));
-    // console.log(`/api${customEncoder(data)}`);
+  
     app.get(`/api${customEncoder(data)}`, (req, res) => {
       res.json(placesMap);
     })
+    var endTime = performance.now()
+    console.log(`Call to doSomething took ${endTime - startTime} milliseconds`)
   } catch (error) {
     console.error("Error processing request:", error);
     res.status(500).json({ error: "An error occurred while processing the request." });
   }
 });
 
-// Define routes
-  // app.get('/api', (req, res) => {
-  //   res.json(places);
-  // });
-
 // Start the server
 app.listen(PORT, () => {
-  // res.json(places)
   console.log(`Server started on port ${PORT}`);
 });

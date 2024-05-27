@@ -5,18 +5,6 @@ import MyForm from './pages/Form';
 
 function App() {
     return (
-        // <div>
-        //     {/* <MyForm onSubmit={handleFormSubmit} /> */}
-        //     <MyForm />
-        //     <h1>Leaflet Map Example</h1>
-        //     {/* {isLoading ? (
-        //         <p>Loading...</p>
-        //     ) : (
-        //         <MapComponent/>
-        //         // <MapComponent locations={locations} />
-        //     )} */}
-        //     {/* <MapComponent /> */}
-        // </div>
         <Router>
             <Routes>
                 <Route path="/" element={<MyForm />} />
