@@ -99,15 +99,15 @@ class TripOSM {
                 combinedPlaces.push(...userPlaces);
                 const remainingPlaces = totalRequiredSize - combinedPlaces.length;
                 combinedPlaces.push(...defaultPlaces.slice(0, remainingPlaces));
-            } else if(defaultPlaces.length + userPlaces.length >= minTotalRequiredSize){
-                // Combine both arrays until the total size reaches the required size
-                combinedPlaces.push(...defaultPlaces);
-                combinedPlaces.push(...userPlaces);
-            } else {
-                // If neither of the arrays individually meets the requirement, and their total size is not enough
-                console.log("Not enough places.");
-                return [];
             }
+        }  else if(defaultPlaces.length + userPlaces.length >= minTotalRequiredSize){
+            // Combine both arrays until the total size reaches the required size
+            combinedPlaces.push(...defaultPlaces);
+            combinedPlaces.push(...userPlaces);
+        } else {
+            // If neither of the arrays individually meets the requirement, and their total size is not enough
+            // console.log("Not enough places.");
+            return [];
         } 
 
         return combinedPlaces;
@@ -196,10 +196,15 @@ class TripOSM {
 
     clusterPlaces(combined, days) {
         // Apply K-means clustering
-        if(combined.length == 0){
-            console.log("We are sorry but we do not support this city for now. Maybe another city?");
+        if(combined.length === 0){
+            // console.log("We are sorry but we do not support this city for now. Maybe another city?");
             return {}
         }
+
+        if (days === 1) {
+            return {0: combined}
+        } 
+
         const placesCoordinates = combined.map(place => [place.lon, place.lat]);
         let { clusters, centroids } = kmeans(placesCoordinates, days);
 
@@ -296,7 +301,7 @@ class TripOSM {
             }
     
             if (wikidataIds.size === 0) {
-                console.log("No Wikidata IDs found.");
+                // console.log("No Wikidata IDs found.");
                 return placesMap;
             }
     
@@ -339,90 +344,6 @@ class TripOSM {
         }
     }
     
-    
-
-    // addFoodPlaces(lat, lon, radius, budget, num) {
-    //     return new Promise((resolve, reject) => {
-    //         let kind = "";
-    //         if (budget === 'cheap') {
-    //             kind = '["amenity"="fast_food"]';
-    //         } else if ( budget === "normal" ) {
-    //             kind = '["amenity"="cafe"]';
-    //         } else if ( budget === "gold card") {
-    //             kind = '["amenity"="restaurant"]';
-    //         } else {
-    //             console.log("Budget not setted!");
-    //             return;
-    //         }
-    //         const query = this.setQuery(lat, lon, [kind], radius);
-    //         fetch("https://overpass-api.de/api/interpreter", {
-    //             method: "POST",
-    //             body: query,
-    //         })
-    //         .then((response) => response.json())
-    //         .then((data) => {
-    //             const countTags = (element) => Object.keys(element.tags || {}).length;
-
-    //             // Extract information about each element
-    //             const elements = data.elements || [];
-    //             const sortedElements = elements.sort((a,b) => countTags(b)-countTags(a));
-
-    //             const extractInfo = (element) => {
-    //                 const info = {
-    //                     english_name: "",
-    //                     original_name: element.tags && element.tags.name ? element.tags.name : "",
-    //                     lat: undefined,
-    //                     lon: undefined,
-    //                     image: "",
-    //                     wikidata: "",
-    //                     food: "yes"
-    //                 };
-    //                 if (element.tags && element.tags['name:en']) {
-    //                     info.english_name = element.tags['name:en'];
-    //                 }
-    //                 if (element.tags && element.tags.image) {
-    //                     info.image = element.tags.image;
-    //                 }
-    //                 if (element.tags && element.tags.wikidata) {
-    //                     info.wikidata = element.tags.wikidata;
-    //                 }
-    //                 if (element.type === "node") {
-    //                     info.lat = element.lat;
-    //                     info.lon = element.lon;
-    //                 } else if (element.type === "way" || element.type === "relation") {
-    //                     // Fetch ways contained in the relation
-    //                     info.lat = element.center.lat;
-    //                     info.lon = element.center.lon;
-    //                 }
-    //                 return info; 
-    //             };
-    //             // console.log("num", num, sortedElements);
-    //             if (num == 2 && sortedElements.length >= 2) {
-    //                 const foodPlace = extractInfo(sortedElements[0]);
-    //                 const foodPlace2 = extractInfo(sortedElements[1]);
-    //                 // console.log("double", foodPlace, foodPlace2);
-    //                 resolve([foodPlace, foodPlace2]);
-    //             } else if (num == 2 && sortedElements.length < 2) {
-    //                 console.log("NOT FOUND");
-    //                 return [];
-    //             }
-    //             if (sortedElements.length > 0) {
-    //                 const foodPlace = extractInfo(sortedElements[0]);
-    //                 // console.log("single", foodPlace);
-    //                 resolve(foodPlace);
-    //             } else {
-    //                 console.log("NO FOOD PLACE");
-    //                 return [];
-    //             }
-    //         })
-    //         .catch((error) => {
-    //             console.error("Error fetching default data:", error);
-    //             reject(error);
-    //         });
-
-    //     });
-    // }
-
     addFoodPlaces(placesMap, foodPlaces) {
         for (const cluster in placesMap) {
             if (placesMap.hasOwnProperty(cluster)) {
@@ -451,12 +372,11 @@ class TripOSM {
                     const newLastPlace = clusterPlaces[clusterPlaces.length - 1];
                     const closestFoodPlaceToNewLast = this.findClosestFoodPlace(newLastPlace.lat, newLastPlace.lon, foodPlaces);
                     if (closestFoodPlaceToNewLast) {
-                        placesMap[cluster].push(closestFoodPlaceToLast);
+                        placesMap[cluster].push(closestFoodPlaceToNewLast);
                     }
                 }
             }
         }
-        // console.log(placesMap);
         return placesMap;
     }
 
@@ -471,7 +391,6 @@ class TripOSM {
                 closestPlace = place;
             }
         }
-    
         return closestPlace;
     }
 
