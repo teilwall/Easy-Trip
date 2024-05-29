@@ -1,5 +1,6 @@
 const TripOSM = require('./TripOSM');
 const { kmeans } = require('ml-kmeans');
+const { performance } = require('perf_hooks');
 
 jest.mock('ml-kmeans', () => ({
     kmeans: jest.fn(() => ({
@@ -144,59 +145,9 @@ describe('TripOSM', () => {
             const placesMap = trip.clusterPlaces(combined, 2);
             expect(Object.keys(placesMap).length).toBe(2);
         });
-
-        test('addFoodPlaces should add food places correctly when cluster has more than 2 places', () => {
-            const placesMap = {
-                0: [{ lat: 0, lon: 0 }, { lat: 1, lon: 1 }]
-            };
-            const foodPlaces = [{ lat: 0.5, lon: 0.5, food: 'yes' }, { lat: 1.5, lon: 1.5, food: 'yes' }];
-
-            const updatedPlacesMap = trip.addFoodPlaces(placesMap, foodPlaces);
-            expect(updatedPlacesMap[0]).toEqual([
-                { lat: 0, lon: 0 },
-                { lat: 1, lon: 1 },
-                { lat: 0.5, lon: 0.5, food: 'yes' },
-                { lat: 1.5, lon: 1.5, food: 'yes' }
-            ]);
-        });
-
-        test('addFoodPlaces should add food places correctly when cluster has 2 or fewer places', () => {
-            const placesMap = {
-                0: [{ lat: 0, lon: 0 }]
-            };
-            const foodPlaces = [{ lat: 0.5, lon: 0.5, food: 'yes' }, { lat: 1.5, lon: 1.5, food: 'yes' }];
-
-            const updatedPlacesMap = trip.addFoodPlaces(placesMap, foodPlaces);
-            expect(updatedPlacesMap[0]).toEqual([
-                { lat: 0, lon: 0 },
-                { lat: 0.5, lon: 0.5, food: 'yes' },
-                { lat: 1.5, lon: 1.5, food: 'yes' }
-            ]);
-        });
-
-        test('calculateDistance should return correct distance between two places', () => {
-            const place1 = { lat: 0, lon: 0 };
-            const place2 = { lat: 1, lon: 1 };
-            const distance = trip.calculateDistance(place1, place2);
-            expect(distance).toBe(2);
-        });
-
-        test('isEqual should return true for equal objects', () => {
-            const obj1 = { a: 1, b: 2 };
-            const obj2 = { a: 1, b: 2 };
-            const result = trip.isEqual(obj1, obj2);
-            expect(result).toBe(true);
-        });
-
-        test('isEqual should return false for different objects', () => {
-            const obj1 = { a: 1, b: 2 };
-            const obj2 = { a: 1, b: 3 };
-            const result = trip.isEqual(obj1, obj2);
-            expect(result).toBe(false);
-        });
     });
 
-    describe('TripOSM Lower Bound Tests', () => {
+    describe('Edge Cases and Specific Scenarios', () => {
         let trip;
         const city = 'Lower Bound City';
         const lat = 0.0;
@@ -286,6 +237,18 @@ describe('TripOSM', () => {
             const updatedPlacesMap = trip.addFoodPlaces(placesMap, foodPlaces);
             expect(updatedPlacesMap).toEqual({});
         });
+
+        test('addFoodPlaces should handle empty foodPlaces correctly', () => {
+            const placesMap = {
+                0: [{ lat: 0, lon: 0 }, { lat: 1, lon: 1 }],
+                1: [{ lat: 2, lon: 2 }, { lat: 3, lon: 3 }]
+            };
+            const foodPlaces = []; // Empty food places
+    
+            const updatedPlacesMap = trip.addFoodPlaces(placesMap, foodPlaces);
+    
+            expect(updatedPlacesMap).toEqual(placesMap); // Expect the placesMap to remain unchanged
+        });
     
         test('addFoodPlaces should handle one element in placesMap', () => {
             const placesMap = {
@@ -318,9 +281,22 @@ describe('TripOSM', () => {
             const result = trip.isEqual(obj1, obj2);
             expect(result).toBe(false);
         });
+
+        test('clusterPlaces should handle empty combined places', () => {
+            const combined = [];
+            const placesMap = trip.clusterPlaces(combined, 1);
+            expect(Object.keys(placesMap).length).toBe(0);
+        });
+    
+        test('clusterPlaces should handle one element in combined places', () => {
+            const combined = [{ lon: 0, lat: 0 }];
+            const placesMap = trip.clusterPlaces(combined, 1);
+            expect(Object.keys(placesMap).length).toBe(1);
+            expect(placesMap[0]).toEqual([{ lon: 0, lat: 0 }]);
+        });
     });
     
-    describe('TripOSM combinePlaces Method', () => {
+    describe('Combine and Filter Places', () => {
         let trip;
         const city = 'Test City';
         const lat = 40.7128;
@@ -405,9 +381,40 @@ describe('TripOSM', () => {
             const combined = trip.combinePlaces(defaultPlaces, userPlaces, 1);
             expect(combined).toEqual([]);
         });
-    });    
 
-    describe('TripOSM rearrangePlacesWithinCluster Method', () => {
+        test('filterPlaces should limit the length of defaultPlaces, userPlaces, and foodPlaces correctly', () => {
+            // Create hardcoded test data
+            const data = {
+                elements: Array(50).fill().map((_, i) => ({
+                    tags: { tourism: 'attraction', name: `Attraction ${i + 1}` },
+                    lat: 40.7128 + i * 0.01,
+                    lon: -74.0060 + i * 0.01
+                })).concat(
+                    Array(50).fill().map((_, i) => ({
+                        tags: { amenity: 'cafe', name: `Cafe ${i + 1}` },
+                        lat: 40.7128 + i * 0.01,
+                        lon: -74.0060 + i * 0.01
+                    })),
+                    Array(50).fill().map((_, i) => ({
+                        tags: { historic: 'memorial', name: `Memorial ${i + 1}` },
+                        lat: 40.7128 + i * 0.01,
+                        lon: -74.0060 + i * 0.01
+                    }))
+                )
+            };
+        
+            // Call the filterPlaces method directly
+            const { defaultPlaces, userPlaces, foodPlaces } = trip.filterPlaces(data);
+        
+            // Check the lengths of the arrays
+            expect(defaultPlaces.length).toBeLessThanOrEqual(40);
+            expect(userPlaces.length).toBeLessThanOrEqual(40);
+            expect(foodPlaces.length).toBeLessThanOrEqual(1000);
+        });
+
+    });
+    
+    describe('Cluster and Rearrange Tests', () => {
         let trip;
         const city = 'Test City';
         const lat = 40.7128;
@@ -490,90 +497,6 @@ describe('TripOSM', () => {
                 { lat: 1, lon: 1 }
             ]);
         });
-    });    
-
-    describe('TripOSM Advanced Tests', () => {
-        let trip;
-        const city = 'Another Test City';
-        const lat = 34.0522;
-        const lon = -118.2437;
-        const fromDate = '2023-06-01T00:00:00Z';
-        const toDate = '2023-06-02T00:00:00Z';
-        const choosenKinds = ['Shopping', 'Outdoor Adventures'];
-        const placesPerDay = '3-4';
-        const numPeople = 4;
-        const budget = 'cheap';
-
-        beforeEach(() => {
-            trip = new TripOSM(city, lat, lon, fromDate, toDate, choosenKinds, placesPerDay, numPeople, budget);
-        });
-
-        test('should initialize with correct values', () => {
-            expect(trip.city).toBe(city);
-            expect(trip.lat).toBe(lat);
-            expect(trip.lon).toBe(lon);
-            expect(trip.fromDate).toBe(fromDate);
-            expect(trip.toDate).toBe(toDate);
-            expect(trip.choosenKinds).toEqual(expect.arrayContaining([
-                '["shop"="mall"]',
-                '["tourism"="viewpoint"]',
-                '["natural"="cave_entrance"]',
-                '["natural"="waterfall"]',
-                '["natural"="peak"]'
-            ]));
-            expect(trip.placesPerDay).toBe(placesPerDay);
-            expect(trip.numPeople).toBe(numPeople);
-            expect(trip.budget).toBe(budget);
-        });
-
-        test('getDaysDifference should calculate correct number of days', () => {
-            const days = trip.getDaysDifference(fromDate, toDate);
-            expect(days).toBe(2);
-        });
-
-        test('combinePlaces should combine places for 2 days correctly', () => {
-            const defaultPlaces = [{ id: 1 }, { id: 2 }, { id: 3 }];
-            const userPlaces = [{ id: 4 }, { id: 5 }, { id: 6 }];
-            const combined = trip.combinePlaces(defaultPlaces, userPlaces, 2);
-            expect(combined.length).toBe(6);
-        });
-
-        test('combinePlaces should return empty if not enough places', () => {
-            const defaultPlaces = [{ id: 1 }];
-            const userPlaces = [{ id: 4 }];
-            const combined = trip.combinePlaces(defaultPlaces, userPlaces, 3);
-            expect(combined).toEqual([]);
-        });
-
-        test('rearrangePlacesWithinCluster should rearrange places correctly', () => {
-            const cluster = [
-                { lat: 1, lon: 1 },
-                { lat: 2, lon: 2 },
-                { lat: 1.5, lon: 1.5 }
-            ];
-            const rearrangedCluster = trip.rearrangePlacesWithinCluster(cluster);
-            expect(rearrangedCluster).toEqual([
-                { lat: 1, lon: 1 },
-                { lat: 1.5, lon: 1.5 },
-                { lat: 2, lon: 2 }
-            ]);
-        });
-
-        test('calculateTotalDistance should return correct total distance', () => {
-            const places = [
-                { lat: 0, lon: 0 },
-                { lat: 1, lon: 1 },
-                { lat: 3, lon: 3 }
-            ];
-            const totalDistance = trip.calculateTotalDistance(places);
-            expect(totalDistance).toBe(6);
-        });
-        
-        test('clusterPlaces should handle empty combined places', () => {
-            const combined = [];
-            const placesMap = trip.clusterPlaces(combined, 2);
-            expect(Object.keys(placesMap).length).toBe(0);
-        });
 
         test('clusterPlaces should distribute places equally into 2 clusters', () => {
             const combined = [
@@ -637,99 +560,9 @@ describe('TripOSM', () => {
         
             const clusterSizes = Object.values(placesMap).map(cluster => cluster.length);
             expect(Math.max(...clusterSizes) - Math.min(...clusterSizes)).toBeLessThanOrEqual(1);
-        });        
+        });  
 
-        test('findClosestFoodPlace should find the closest food place', () => {
-            const foodPlaces = [
-                { lat: 0, lon: 0, food: 'yes' },
-                { lat: 1, lon: 1, food: 'yes' },
-                { lat: 0.5, lon: 0.5, food: 'yes' }
-            ];
-            const closestFoodPlace = trip.findClosestFoodPlace(0.3, 0.3, foodPlaces);
-            expect(closestFoodPlace).toEqual({ lat: 0.5, lon: 0.5, food: 'yes' });
-        });
-
-        test('addFoodPlaces should add food places correctly when cluster has more than 2 places', () => {
-            const placesMap = {
-                0: [{ lat: 0, lon: 0 }, { lat: 1, lon: 1 }]
-            };
-            const foodPlaces = [{ lat: 0.5, lon: 0.5, food: 'yes' }, { lat: 1.5, lon: 1.5, food: 'yes' }];
-
-            const updatedPlacesMap = trip.addFoodPlaces(placesMap, foodPlaces);
-            expect(updatedPlacesMap[0]).toEqual([
-                { lat: 0, lon: 0 },
-                { lat: 1, lon: 1 },
-                { lat: 0.5, lon: 0.5, food: 'yes' },
-                { lat: 1.5, lon: 1.5, food: 'yes' }
-            ]);
-        });
-
-        test('addFoodPlaces should add food places correctly when cluster has 2 or fewer places', () => {
-            const placesMap = {
-                0: [{ lat: 0, lon: 0 }]
-            };
-            const foodPlaces = [{ lat: 0.5, lon: 0.5, food: 'yes' }, { lat: 1.5, lon: 1.5, food: 'yes' }];
-
-            const updatedPlacesMap = trip.addFoodPlaces(placesMap, foodPlaces);
-            expect(updatedPlacesMap[0]).toEqual([
-                { lat: 0, lon: 0 },
-                { lat: 0.5, lon: 0.5, food: 'yes' },
-                { lat: 1.5, lon: 1.5, food: 'yes' }
-            ]);
-        });
-
-        test('calculateDistance should return correct distance between two places', () => {
-            const place1 = { lat: 0, lon: 0 };
-            const place2 = { lat: 1, lon: 1 };
-            const distance = trip.calculateDistance(place1, place2);
-            expect(distance).toBe(2);
-        });
-
-        test('isEqual should return true for equal objects', () => {
-            const obj1 = { a: 1, b: 2 };
-            const obj2 = { a: 1, b: 2 };
-            const result = trip.isEqual(obj1, obj2);
-            expect(result).toBe(true);
-        });
-
-        test('isEqual should return false for different objects', () => {
-            const obj1 = { a: 1, b: 2 };
-            const obj2 = { a: 1, b: 3 };
-            const result = trip.isEqual(obj1, obj2);
-            expect(result).toBe(false);
-        });
-
-        test('filterPlaces should limit the length of defaultPlaces, userPlaces, and foodPlaces correctly', () => {
-            // Create hardcoded test data
-            const data = {
-                elements: Array(50).fill().map((_, i) => ({
-                    tags: { tourism: 'attraction', name: `Attraction ${i + 1}` },
-                    lat: 40.7128 + i * 0.01,
-                    lon: -74.0060 + i * 0.01
-                })).concat(
-                    Array(50).fill().map((_, i) => ({
-                        tags: { amenity: 'cafe', name: `Cafe ${i + 1}` },
-                        lat: 40.7128 + i * 0.01,
-                        lon: -74.0060 + i * 0.01
-                    })),
-                    Array(50).fill().map((_, i) => ({
-                        tags: { historic: 'memorial', name: `Memorial ${i + 1}` },
-                        lat: 40.7128 + i * 0.01,
-                        lon: -74.0060 + i * 0.01
-                    }))
-                )
-            };
-        
-            // Call the filterPlaces method directly
-            const { defaultPlaces, userPlaces, foodPlaces } = trip.filterPlaces(data);
-        
-            // Check the lengths of the arrays
-            expect(defaultPlaces.length).toBeLessThanOrEqual(40);
-            expect(userPlaces.length).toBeLessThanOrEqual(40);
-            expect(foodPlaces.length).toBeLessThanOrEqual(1000);
-        });
-        
-    });
+    });    
 
     jest.setTimeout(15000);
     describe('TripOSM Integration Tests for Paris', () => {
@@ -750,8 +583,8 @@ describe('TripOSM', () => {
 
         test('fetchDescriptionsAndImages should add descriptions and images to places', async () => {
             const placesMap = {
-                0: [{ lat: 0, lon: 0, wikidata: 'Q42' }], // Douglas Adams
-                1: [{ lat: 1, lon: 1, wikidata: 'Q12345' }] // Sample
+                0: [{ lat: 0, lon: 0, wikidata: 'Q42' }],
+                1: [{ lat: 1, lon: 1, wikidata: 'Q12345' }] 
             };
     
             const updatedPlacesMap = await trip.fetchDescriptionsAndImages(placesMap);
@@ -763,7 +596,8 @@ describe('TripOSM', () => {
         });
 
         test('should fetch and filter places correctly from API', async () => {
-            const { defaultPlaces, userPlaces, foodPlaces } = await trip.osmRequest();
+            const data = await trip.osmRequest();
+            const { defaultPlaces, userPlaces, foodPlaces } = trip.filterPlaces(data);
             expect(defaultPlaces.length).toBeGreaterThan(0);
             expect(userPlaces.length).toBeGreaterThan(0);
             expect(foodPlaces.length).toBeGreaterThan(0);

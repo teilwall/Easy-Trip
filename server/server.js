@@ -34,10 +34,8 @@ function customEncoder(obj) {
 
   return encodedString;
 }
-// average time so far 27 sec
 app.post('/apiForm', async (req, res) => {
   try {
-    var startTime = performance.now()
     const data = req.body;
     const cityName = data['cityName'];
     const lat = data['lat'];
@@ -52,13 +50,10 @@ app.post('/apiForm', async (req, res) => {
     var trip = new TripOSM(cityName, lat, lon, fromDate, toDate, chosenKinds, placesPerDay, numPeople, budget);
     var placesMap = await trip.createTrip();
     var placesMap = JSON.parse(placesMap);
-    // console.log(placesMap);
   
     app.get(`/api${customEncoder(data)}`, (req, res) => {
       res.json(placesMap);
     })
-    var endTime = performance.now()
-    console.log(`Call to doSomething took ${endTime - startTime} milliseconds`)
   } catch (error) {
     console.error("Error processing request:", error);
     res.status(500).json({ error: "An error occurred while processing the request." });

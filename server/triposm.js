@@ -33,31 +33,18 @@ class TripOSM {
         this.budget = budget;
     }
 
-    setQuery(lat, lon, kinds, radius=this.RADIUS) {
-        var queryBody = "";
-        for (var kind of kinds) {
-            queryBody += `nwr${kind}(around:${radius},${lat},${lon});`;
-        }
-        const query = `
-        [out:json];
-        (
-          ${queryBody}
-        );
-        out center;
-        `;
-        return query
+    setQuery(lat, lon, kinds, radius = this.RADIUS) {
+        const queryBody = kinds.map(kind => `nwr${kind}(around:${radius},${lat},${lon});`).join('');
+        return `[out:json];(${queryBody});out center;`;
     }
 
     getDaysDifference(date1, date2) {
-        // Extract date part from date strings
         var parts1 = date1.split("T")[0].split("-");
         var parts2 = date2.split("T")[0].split("-");
         
-        // Create Date objects with parsed components
         var d1 = new Date(parts1[0], parts1[1] - 1, parts1[2]);
         var d2 = new Date(parts2[0], parts2[1] - 1, parts2[2]);
         
-        // Calculate the difference in milliseconds
         var differenceInMilliseconds = d2 - d1;
         
         // Convert milliseconds to days
@@ -106,7 +93,7 @@ class TripOSM {
             combinedPlaces.push(...userPlaces);
         } else {
             // If neither of the arrays individually meets the requirement, and their total size is not enough
-            // console.log("Not enough places.");
+            console.error("Not enough places.");
             return [];
         } 
 
@@ -197,7 +184,6 @@ class TripOSM {
     clusterPlaces(combined, days) {
         // Apply K-means clustering
         if(combined.length === 0){
-            // console.log("We are sorry but we do not support this city for now. Maybe another city?");
             return {}
         }
 
@@ -263,7 +249,6 @@ class TripOSM {
                     // Update group sizes
                     groupSizes[minClusterIndex]++;
                     groupSizes[maxExcessClusterID]--; 
-                    // console.log("inside if: ", groupSizes);
                 }
             });
         }
@@ -301,7 +286,7 @@ class TripOSM {
             }
     
             if (wikidataIds.size === 0) {
-                // console.log("No Wikidata IDs found.");
+                console.error("No Wikidata IDs found.");
                 return placesMap;
             }
     
@@ -407,7 +392,7 @@ class TripOSM {
                 throw new Error('Failed to fetch OSM data');
             }
             const data = await response.json();
-            return this.filterPlaces(data);
+            return data;
         } catch (error) {
             console.error("Error fetching OSM data:", error);
             return {};
@@ -475,10 +460,10 @@ class TripOSM {
     
     async createTrip() {
         try {
-            const { defaultPlaces, userPlaces, foodPlaces } = await this.osmRequest();
+            const data = await this.osmRequest();
+            const { defaultPlaces, userPlaces, foodPlaces } = this.filterPlaces(data);
             const days = this.getDaysDifference(this.fromDate, this.toDate);
             const places = this.combinePlaces(defaultPlaces, userPlaces, days);
-            // console.log(places);
             let placesMap = this.clusterPlaces(places, days);
             placesMap = this.rearrangePlacesWithinMap(placesMap);
             placesMap = this.addFoodPlaces(placesMap, foodPlaces);

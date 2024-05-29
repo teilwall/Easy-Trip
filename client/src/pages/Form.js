@@ -37,18 +37,15 @@ function MyForm() {
 
   const handleCountryChange = (selectedCountryid) => {
     setCountryid(selectedCountryid.id);
-    // formik.values.country = countryid; 
     formik.setFieldValue('country', selectedCountryid.id, true); 
   }
 
   const handleStateChange = (selectedStateid) => {
     setStateid(selectedStateid.id);
-    // formik.values.state = stateid; 
     formik.setFieldValue('state', selectedStateid.id, true); 
   }
 
   const handleCityChange = (selectedCity) => {
-    // formik.values.city = selectedCity.name; 
     formik.setFieldValue('city', selectedCity.name, true); 
     setCityName(selectedCity.name);
     setLat(selectedCity.latitude);
@@ -69,19 +66,16 @@ function MyForm() {
 
   const handleChosenKindsChange = (kinds) => {
     const res = kinds.map(kind => kind.label);
-    // formik.values.kinds = res;
     formik.setFieldValue('kinds', res, true); 
     setChosenKinds(JSON.stringify(res));
   };
 
   const handleBudgetSelection = (selectedBudget) => {
-    // formik.values.budget = selectedBudget;
     formik.setFieldValue('budget', selectedBudget, true); 
     setBudget(selectedBudget);
   };
 
   const handlePlacesPerDaySelection = (selectedPlacesPerDay) => {
-    // formik.values.placesPerDay = selectedPlacesPerDay;
     formik.setFieldValue('placesPerDay', selectedPlacesPerDay, true); 
     setPlacesPerDay(selectedPlacesPerDay);
   };
@@ -108,11 +102,9 @@ function MyForm() {
     },
     validationSchema: validateSchema,
     onSubmit: (values, { resetForm }) => {
-      // console.log(values);
       setTimeout(() => {
         const fromDateStr = JSON.stringify(fromDate);
         const toDateStr = JSON.stringify(toDate);
-        // console.log(fromDateStr, toDateStr, chosenKinds);
         const data = {
           cityName,
           lat,

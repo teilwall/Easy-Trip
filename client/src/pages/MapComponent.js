@@ -9,6 +9,8 @@ import "./MapComponent.css";
 import CustomPopup from './Popup';
 import axios from 'axios';
 
+
+
 const customIcons = [
     new Icon({ iconUrl: "https://cdn-icons-png.flaticon.com/128/684/684908.png", iconSize: [38, 38] }),
     new Icon({ iconUrl: "https://cdn-icons-png.flaticon.com/128/727/727606.png", iconSize: [38, 38] }),
@@ -59,7 +61,7 @@ function MapComponent() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [isDataEmpty, setIsDataEmpty] = useState(false);
-    const [showTimeoutPopup, setShowTimeoutPopup] = useState(false); // State to handle timeout
+    const [showTimeoutPopup, setShowTimeoutPopup] = useState(false);
     const navigate = useNavigate();
     const { search } = useLocation();
     const queryParams = useMemo(() => new URLSearchParams(search), [search]);
@@ -67,7 +69,7 @@ function MapComponent() {
     const mapRef = useRef(null);
 
     useEffect(() => {
-        const maxAttempts = 30; // Max number of attempts
+        const maxAttempts = 30;
         let attempts = 0;
 
         const fetchData = async () => {
@@ -86,10 +88,10 @@ function MapComponent() {
                 setMainInfo(JSON.parse(queryParams.get('city')));
                 setParsedData(data);
                 setIsLoading(false);
-                setShowTimeoutPopup(false); // Clear the timeout popup state
+                setShowTimeoutPopup(false);
             } catch (error) {
                 console.error('Error fetching data:', error);
-                setIsLoading(false); // Ensure loading is set to false on error
+                setIsLoading(false);
                 setIsDataEmpty(true);
             }
         };
@@ -99,17 +101,17 @@ function MapComponent() {
                 try {
                     const response = await axios.get(`http://localhost:5000/api${city}`);
                     if (response.status === 200) {
-                        fetchData(); // Call fetchData once the response is ok
+                        fetchData(); 
                         return;
                     }
                 } catch (error) {
                     console.log("Waiting for the URL to become available...");
                 }
                 attempts += 1;
-                await new Promise(resolve => setTimeout(resolve, 500)); // Wait 0.5 seconds between attempts
+                await new Promise(resolve => setTimeout(resolve, 500)); 
             }
-            setIsLoading(false); // Set loading to false after max attempts
-            setShowTimeoutPopup(true); // Show timeout popup after max attempts
+            setIsLoading(false);
+            setShowTimeoutPopup(true);
         };
 
         pollServer();
@@ -117,16 +119,20 @@ function MapComponent() {
         const timeoutId = setTimeout(() => {
             if (isLoading) {
                 setShowTimeoutPopup(true);
-                setIsLoading(false); // Set loading to false after timeout
+                setIsLoading(false);
             }
-        }, 15000); // 15 seconds timeout
+        }, 15000);
 
-        return () => clearTimeout(timeoutId); // Clear timeout on component unmount
+        return () => clearTimeout(timeoutId);
     }, [city, queryParams, isLoading]);
 
     if (isLoading) {
-        return <div>Loading...</div>;
-    }
+        return (
+            <div className="skeleton-container">
+                <div className="plane-loader"></div>
+            </div>
+        );
+    }    
 
     const calculateGroupCenter = (locations) => {
         if (locations.length === 0) return [0, 0];
@@ -213,7 +219,8 @@ function MapComponent() {
                     />
                     <MarkerClusterGroup disableClusteringAtZoom={12} animateAddingMarkers={true}>
                         {selectedGroupLocations.map((location, index) => (
-                            <Marker key={index} position={[location.lat, location.lon]} icon={selectedGroup !== null ? customIconsNumerated[index % customIconsNumerated.length] : location.icon}>
+                            <Marker key={index} position={[location.lat, location.lon]} icon={selectedGroup !== null ?
+                             customIconsNumerated[index % customIconsNumerated.length] : location.icon}>
                                 <Popup>
                                     <div className="popup-content">
                                         {location.image && (

@@ -1,54 +1,52 @@
+/* Leaflet container style */
 .leaflet-container {
-    height: 100vh;
-    width: 100%;
+  height: 100vh;
+  width: 100%;
 }
 
 /* Adjust the map container */
 .map-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 50%; /* Adjust the width as needed */
-  }
-  
-  /* Style the container for the data on the right side */
-  .data-container {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 45%; /* Adjust the width as needed */
-    padding: 20px; /* Add some padding for spacing */
-    overflow-y: auto; /* Enable vertical scrolling if content exceeds container height */
-  }
-  
-  .popup-content {
-    display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 50%; /* Adjust the width as needed */
 }
 
-.popup-image {
-    width: 100px;
-    height: 100px;
-    background-size: cover;
-    background-position: center;
-    margin-right: 10px;
-}
-
-.popup-details {
-    flex: 1;
-}
-
+/* Style the container for the data on the right side */
 .data-container {
-  flex: 1;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 45%; /* Adjust the width as needed */
+  padding: 20px; /* Add some padding for spacing */
+  overflow-y: auto; /* Enable vertical scrolling if content exceeds container height */
+  background-color: #f7f7f7;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
-  border-radius: 20px;
-  background-color: #f7f7f7;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Popup content styling */
+.popup-content {
+  display: flex;
+}
+
+.popup-image {
+  width: 100px;
+  height: 100px;
+  background-size: cover;
+  background-position: center;
+  margin-right: 10px;
+}
+
+.popup-details {
+  flex: 1;
+}
+
+/* Data container styling */
 .data-header {
   margin-bottom: 20px;
   text-align: center;
@@ -107,4 +105,73 @@
 
 .data-body strong {
   color: #ff7f50;
+}
+
+/* Responsive styling for phones */
+@media (max-width: 768px) {
+  .leaflet-container {
+    height: 50vh;
+    width: 100%;
+  }
+  
+  .map-container {
+      position: relative;
+      width: 100%;
+      height: 50vh; /* Adjust the height for phones */
+  }
+
+  .data-container {
+      position: relative;
+      width: 100%;
+      height: 50vh; /* Adjust the height for phones */
+      padding: 10px; /* Adjust padding for phones */
+  }
+
+  .data-header h1 {
+      font-size: 24px;
+  }
+
+  .data-header p {
+      font-size: 16px;
+  }
+
+  .data-body button {
+      font-size: 16px;
+      padding: 10px 20px;
+  }
+
+  .popup-image {
+      width: 80px;
+      height: 80px;
+  }
+}
+
+
+.skeleton-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100%;
+  background-color: #f0f0f0;
+}
+
+.plane-loader {
+  width: 100px;
+  height: 100px;
+  background: url('https://cdn-icons-png.flaticon.com/128/7894/7894141.png') no-repeat center center;
+  background-size: contain;
+  animation: fade 2s linear infinite;
+}
+
+@keyframes fade {
+  0% {
+      opacity: 1;
+  }
+  50% {
+      opacity: 0.5;
+  }
+  100% {
+      opacity: 1;
+  }
 }
