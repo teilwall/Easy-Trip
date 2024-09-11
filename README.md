@@ -65,9 +65,6 @@ Easy Trip is an interactive and user-friendly web application designed to simpli
    - Generate a trip plan, which will be displayed on a map with a day-by-day itinerary.
    - Use the interactive map to explore destinations and view daily routes.
 
-## Project Structure
-
-/Easy-Trip │-- /client │ │-- src │ │-- public │-- /server │ │-- routes │ │-- models │-- package.json
 
 
 ## Architecture
