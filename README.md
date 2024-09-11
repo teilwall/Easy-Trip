@@ -7,7 +7,6 @@ Easy Trip is an interactive and user-friendly web application designed to simpli
 - [Technologies Used](#technologies-used)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Project Structure](#project-structure)
 - [Architecture](#architecture)
 - [Testing and Optimization](#testing-and-optimization)
 - [Future Work](#future-work)
